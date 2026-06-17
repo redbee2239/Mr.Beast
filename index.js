@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
-  res.writeHead(200);
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Bot đang chạy');
 }).listen(PORT, () => console.log(`Server đang chạy trên port ${PORT}`));
 
@@ -47,6 +47,20 @@ client.on('messageCreate', async (message) => {
 
   try {
     await message.delete();
+
+    const invite = await message.guild.invites.create(message.channel.id, {
+      maxAge: 86400,
+      reason: 'Link invite cho người bị kick',
+    });
+
+    try {
+      await message.member.send(
+        `Bạn đã bị kick do chat vào khu vực cấm.\nVào lại server bằng link sau:\n${invite.url}`
+      );
+    } catch {
+      console.log(`Không thể gửi DM cho ${message.author.tag}`);
+    }
+
     await message.member.kick('Đã gửi tin nhắn trong khu vực bị cấm');
     console.log(`Đã kick ${message.author.tag} (ID: ${message.author.id})`);
   } catch (err) {
