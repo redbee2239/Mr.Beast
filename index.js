@@ -4,6 +4,7 @@ require('dotenv').config();
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
@@ -29,6 +30,7 @@ client.on('messageCreate', async (message) => {
   if (ALLOWED_ROLE_ID && message.member.roles.cache.has(ALLOWED_ROLE_ID)) return;
 
   try {
+    await message.delete();
     await message.member.kick('Đã gửi tin nhắn trong khu vực bị cấm');
     console.log(`Đã kick ${message.author.tag} (ID: ${message.author.id})`);
   } catch (err) {
