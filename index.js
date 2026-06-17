@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const http = require('http');
+const https = require('https');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
@@ -20,13 +21,13 @@ const client = new Client({
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const ALLOWED_ROLE_ID = process.env.ALLOWED_ROLE_ID;
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Bot đã đăng nhập với tên: ${client.user.tag}`);
 
   const SELF_URL = process.env.RENDER_EXTERNAL_URL;
   if (SELF_URL) {
     setInterval(() => {
-      http.get(SELF_URL, (res) => {
+      https.get(SELF_URL, (res) => {
         console.log(`Keep-alive: ${res.statusCode}`);
       }).on('error', (err) => console.log(`Keep-alive error: ${err.message}`));
     }, 10 * 60 * 1000);
