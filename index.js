@@ -22,6 +22,15 @@ const ALLOWED_ROLE_ID = process.env.ALLOWED_ROLE_ID;
 
 client.once('ready', () => {
   console.log(`Bot đã đăng nhập với tên: ${client.user.tag}`);
+
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL;
+  if (SELF_URL) {
+    setInterval(() => {
+      http.get(SELF_URL, (res) => {
+        console.log(`Keep-alive: ${res.statusCode}`);
+      }).on('error', (err) => console.log(`Keep-alive error: ${err.message}`));
+    }, 10 * 60 * 1000);
+  }
 });
 
 client.on('messageCreate', async (message) => {
@@ -36,9 +45,6 @@ client.on('messageCreate', async (message) => {
 
   if (ALLOWED_ROLE_ID && message.member.roles.cache.has(ALLOWED_ROLE_ID)) return;
 
-  console.log(`User roles: ${message.member.roles.cache.map(r => r.id).join(', ')}`);
-  console.log(`Allowed role: ${ALLOWED_ROLE_ID}`);
-
   try {
     await message.delete();
     await message.member.kick('Đã gửi tin nhắn trong khu vực bị cấm');
@@ -47,5 +53,8 @@ client.on('messageCreate', async (message) => {
     console.log(`Lỗi khi thao tác với ${message.author.tag}: ${err.message}`);
   }
 });
+
+client.on('error', (err) => console.log(`Client error: ${err.message}`));
+client.on('shardError', (err) => console.log(`Shard error: ${err.message}`));
 
 client.login(process.env.DISCORD_TOKEN);
