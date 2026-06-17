@@ -20,6 +20,7 @@ const client = new Client({
 
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const ALLOWED_ROLE_ID = process.env.ALLOWED_ROLE_ID;
+const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
 
 client.once('clientReady', () => {
   console.log(`Bot đã đăng nhập với tên: ${client.user.tag}`);
@@ -64,6 +65,19 @@ client.on('messageCreate', async (message) => {
 
     await message.member.kick('Đã gửi tin nhắn trong khu vực bị cấm');
     console.log(`Đã kick ${message.author.tag} (ID: ${message.author.id})`);
+
+    if (LOG_CHANNEL_ID) {
+      try {
+        const logChannel = await message.guild.channels.fetch(LOG_CHANNEL_ID);
+        if (logChannel) {
+          await logChannel.send(
+            `🚨 **${message.author.tag}** (ID: ${message.author.id}) đã bị kick vì chat vào khu vực cấm.`
+          );
+        }
+      } catch (e) {
+        console.log(`Lỗi gửi log: ${e.message}`);
+      }
+    }
   } catch (err) {
     console.log(`Lỗi khi thao tác với ${message.author.tag}: ${err.message}`);
   }
