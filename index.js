@@ -29,12 +29,15 @@ client.on('messageCreate', async (message) => {
 
   if (ALLOWED_ROLE_ID && message.member.roles.cache.has(ALLOWED_ROLE_ID)) return;
 
+  console.log(`User roles: ${message.member.roles.cache.map(r => r.id).join(', ')}`);
+  console.log(`Allowed role: ${ALLOWED_ROLE_ID}`);
+
   try {
     await message.delete();
     await message.member.kick('Đã gửi tin nhắn trong khu vực bị cấm');
     console.log(`Đã kick ${message.author.tag} (ID: ${message.author.id})`);
   } catch (err) {
-    console.log(`Lỗi khi kick ${message.author.tag}: ${err.message}`);
+    console.log(`Lỗi khi thao tác với ${message.author.tag}: ${err.message}`);
   }
 });
 
