@@ -1,5 +1,12 @@
 const { Client, GatewayIntentBits } = require('discord.js');
+const http = require('http');
 require('dotenv').config();
+
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('Bot đang chạy');
+}).listen(PORT, () => console.log(`Server đang chạy trên port ${PORT}`));
 
 const client = new Client({
   intents: [
