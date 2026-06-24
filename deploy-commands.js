@@ -10,7 +10,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try {
     console.log('Đang đăng ký slash commands...');
     await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
       { body: commands }
     );
     console.log('Đã đăng ký slash commands thành công!');
