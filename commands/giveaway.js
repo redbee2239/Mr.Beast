@@ -77,19 +77,19 @@ module.exports = {
     } else if (sub === 'end') {
       const messageId = interaction.options.getString('message_id');
       const giveaway = await Giveaway.findOne({ messageId, ended: false });
-      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway hoặc đã kết thúc!', ephemeral: true });
+      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway hoặc đã kết thúc!', flags: 64 });
 
       const message = await interaction.channel.messages.fetch(messageId).catch(() => null);
-      if (!message) return interaction.reply({ content: 'Không tìm thấy tin nhắn giveaway!', ephemeral: true });
+      if (!message) return interaction.reply({ content: 'Không tìm thấy tin nhắn giveaway!', flags: 64 });
 
       await endGiveaway(giveaway, message);
-      await interaction.reply({ content: 'Đã kết thúc giveaway!', ephemeral: true });
+      await interaction.reply({ content: 'Đã kết thúc giveaway!', flags: 64 });
 
     } else if (sub === 'pause') {
       const messageId = interaction.options.getString('message_id');
       const giveaway = await Giveaway.findOne({ messageId, ended: false });
-      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway hoặc đã kết thúc!', ephemeral: true });
-      if (giveaway.paused) return interaction.reply({ content: 'Giveaway đã bị tạm dừng!', ephemeral: true });
+      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway hoặc đã kết thúc!', flags: 64 });
+      if (giveaway.paused) return interaction.reply({ content: 'Giveaway đã bị tạm dừng!', flags: 64 });
 
       giveaway.paused = true;
       await giveaway.save();
@@ -104,13 +104,13 @@ module.exports = {
         await message.edit({ embeds: [embed] });
       }
 
-      await interaction.reply({ content: 'Đã tạm dừng giveaway!', ephemeral: true });
+      await interaction.reply({ content: 'Đã tạm dừng giveaway!', flags: 64 });
 
     } else if (sub === 'resume') {
       const messageId = interaction.options.getString('message_id');
       const giveaway = await Giveaway.findOne({ messageId, ended: false });
-      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway hoặc đã kết thúc!', ephemeral: true });
-      if (!giveaway.paused) return interaction.reply({ content: 'Giveaway không bị tạm dừng!', ephemeral: true });
+      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway hoặc đã kết thúc!', flags: 64 });
+      if (!giveaway.paused) return interaction.reply({ content: 'Giveaway không bị tạm dừng!', flags: 64 });
 
       giveaway.paused = false;
       await giveaway.save();
@@ -127,12 +127,12 @@ module.exports = {
         await message.edit({ embeds: [embed] });
       }
 
-      await interaction.reply({ content: 'Đã tiếp tục giveaway!', ephemeral: true });
+      await interaction.reply({ content: 'Đã tiếp tục giveaway!', flags: 64 });
 
     } else if (sub === 'list') {
       const giveaways = await Giveaway.find();
       if (giveaways.length === 0) {
-        return interaction.reply({ content: 'Không có giveaway nào!', ephemeral: true });
+        return interaction.reply({ content: 'Không có giveaway nào!', flags: 64 });
       }
 
       const list = giveaways.map((g, i) => {
@@ -149,13 +149,13 @@ module.exports = {
         .setColor(0x5865f2)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.reply({ embeds: [embed], flags: 64 });
 
     } else if (sub === 'delete') {
       const stt = interaction.options.getInteger('stt');
       const giveaways = await Giveaway.find();
       if (stt < 1 || stt > giveaways.length) {
-        return interaction.reply({ content: `Số thứ tự không hợp lệ! Chỉ có ${giveaways.length} giveaway.`, ephemeral: true });
+        return interaction.reply({ content: `Số thứ tự không hợp lệ! Chỉ có ${giveaways.length} giveaway.`, flags: 64 });
       }
 
       const giveaway = giveaways[stt - 1];
@@ -163,11 +163,11 @@ module.exports = {
       if (message) await message.delete().catch(() => null);
 
       await Giveaway.deleteOne({ _id: giveaway._id });
-      await interaction.reply({ content: `Đã xoá giveaway **${giveaway.prize}**!`, ephemeral: true });
+      await interaction.reply({ content: `Đã xoá giveaway **${giveaway.prize}**!`, flags: 64 });
 
     } else if (sub === 'clear') {
       const result = await Giveaway.deleteMany({ ended: true });
-      await interaction.reply({ content: `Đã xoá ${result.deletedCount} giveaway đã kết thúc!`, ephemeral: true });
+      await interaction.reply({ content: `Đã xoá ${result.deletedCount} giveaway đã kết thúc!`, flags: 64 });
     }
   },
 };
