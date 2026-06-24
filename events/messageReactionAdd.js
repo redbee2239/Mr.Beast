@@ -14,6 +14,7 @@ module.exports = {
     });
 
     if (!giveaway) return;
+    if (giveaway.paused) return;
 
     if (!giveaway.participants.includes(user.id)) {
       giveaway.participants.push(user.id);

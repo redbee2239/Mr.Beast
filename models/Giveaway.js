@@ -10,6 +10,7 @@ const giveawaySchema = new mongoose.Schema({
   winnersCount: { type: Number, required: true, min: 1 },
   endTime: { type: Date, required: true },
   participants: [{ type: String }],
+  paused: { type: Boolean, default: false },
   ended: { type: Boolean, default: false },
   winners: [{ type: String }],
 }, { timestamps: true });
