@@ -53,7 +53,8 @@ module.exports = {
         .setFooter({ text: `Tạo bởi ${interaction.user.tag}` })
         .setTimestamp();
 
-      const message = await interaction.reply({ embeds: [embed], fetchReply: true });
+      await interaction.reply({ embeds: [embed] });
+      const message = await interaction.fetchReply();
       await message.react('🎉');
 
       await Giveaway.create({
