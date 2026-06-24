@@ -24,6 +24,13 @@ module.exports = {
     .addSubcommand(sub =>
       sub.setName('resume').setDescription('Tiếp tục giveaway')
         .addStringOption(opt => opt.setName('message_id').setDescription('ID tin nhắn giveaway').setRequired(true))
+    )
+    .addSubcommand(sub =>
+      sub.setName('list').setDescription('Xem các giveaway đang hoạt động')
+    )
+    .addSubcommand(sub =>
+      sub.setName('delete').setDescription('Xoá giveaway')
+        .addStringOption(opt => opt.setName('message_id').setDescription('ID tin nhắn giveaway').setRequired(true))
     ),
 
   async execute(interaction) {
@@ -117,6 +124,39 @@ module.exports = {
       }
 
       await interaction.reply({ content: 'Đã tiếp tục giveaway!', ephemeral: true });
+
+    } else if (sub === 'list') {
+      const giveaways = await Giveaway.find({ ended: false });
+      if (giveaways.length === 0) {
+        return interaction.reply({ content: 'Không có giveaway nào đang hoạt động!', ephemeral: true });
+      }
+
+      const list = giveaways.map((g, i) => {
+        const status = g.paused ? '⏸️ Tạm dừng' : '✅ Đang chạy';
+        const timeLeft = Math.max(0, Math.floor((g.endTime.getTime() - Date.now()) / 1000));
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        return `${i + 1}. **${g.prize}** - ${status} - Còn ${minutes}m ${seconds}s - Participants: ${g.participants.length}`;
+      }).join('\n');
+
+      const embed = new EmbedBuilder()
+        .setTitle('📋 GIVEAWAY ĐANG HOẠT ĐỘNG')
+        .setDescription(list)
+        .setColor(0x5865f2)
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed], ephemeral: true });
+
+    } else if (sub === 'delete') {
+      const messageId = interaction.options.getString('message_id');
+      const giveaway = await Giveaway.findOne({ messageId });
+      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway!', ephemeral: true });
+
+      const message = await interaction.channel.messages.fetch(messageId).catch(() => null);
+      if (message) await message.delete().catch(() => null);
+
+      await Giveaway.deleteOne({ messageId });
+      await interaction.reply({ content: 'Đã xoá giveaway!', ephemeral: true });
     }
   },
 };
