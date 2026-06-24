@@ -12,19 +12,39 @@ module.exports = {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
-      console.log('Đang xóa tất cả commands cũ...');
-      const existing = await rest.get(Routes.applicationCommands(client.user.id));
-      for (const cmd of existing) {
+      // Xóa global commands
+      console.log('Đang xóa global commands...');
+      const existingGlobal = await rest.get(Routes.applicationCommands(client.user.id));
+      for (const cmd of existingGlobal) {
         await rest.delete(Routes.applicationCommand(client.user.id, cmd.id));
       }
-      console.log(`Đã xóa ${existing.length} commands.`);
+      console.log(`Đã xóa ${existingGlobal.length} global commands.`);
 
-      console.log('Đang đăng ký commands mới...');
-      await rest.put(
-        Routes.applicationCommands(client.user.id),
-        { body: commands }
-      );
-      console.log('Đã đăng ký commands thành công!');
+      // Xóa guild commands nếu có GUILD_ID
+      if (process.env.GUILD_ID) {
+        console.log('Đang xóa guild commands...');
+        const existingGuild = await rest.get(Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID));
+        for (const cmd of existingGuild) {
+          await rest.delete(Routes.applicationGuildCommand(client.user.id, process.env.GUILD_ID, cmd.id));
+        }
+        console.log(`Đã xóa ${existingGuild.length} guild commands.`);
+
+        // Đăng ký guild commands (cập nhật ngay)
+        console.log('Đang đăng ký guild commands...');
+        await rest.put(
+          Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
+          { body: commands }
+        );
+        console.log('Đã đăng ký guild commands thành công!');
+      } else {
+        // Đăng ký global commands
+        console.log('Đang đăng ký global commands...');
+        await rest.put(
+          Routes.applicationCommands(client.user.id),
+          { body: commands }
+        );
+        console.log('Đã đăng ký global commands thành công!');
+      }
     } catch (error) {
       console.error('Lỗi đăng ký commands:', error);
     }
