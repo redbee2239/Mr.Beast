@@ -1,5 +1,6 @@
-const { Events, REST, Routes } = require('discord.js');
+const { Events, REST, Routes, EmbedBuilder } = require('discord.js');
 const giveawayCommand = require('../commands/giveaway');
+const Giveaway = require('../models/Giveaway');
 
 module.exports = {
   name: Events.ClientReady,
@@ -20,5 +21,66 @@ module.exports = {
     } catch (error) {
       console.error('Lỗi đăng ký slash commands:', error);
     }
+
+    // Load active giveaways and set timers
+    const activeGiveaways = await Giveaway.find({ ended: false });
+    console.log(`Đang tải ${activeGiveaways.length} giveaway đang hoạt động...`);
+
+    for (const giveaway of activeGiveaways) {
+      const remaining = giveaway.endTime.getTime() - Date.now();
+
+      if (remaining <= 0) {
+        // Giveaway should have ended
+        const channel = await client.channels.fetch(giveaway.channelId).catch(() => null);
+        if (!channel) continue;
+        const message = await channel.messages.fetch(giveaway.messageId).catch(() => null);
+        if (!message) continue;
+        await endGiveaway(giveaway, message);
+      } else if (!giveaway.paused) {
+        // Set timer for future end
+        setTimeout(async () => {
+          const updated = await Giveaway.findOne({ messageId: giveaway.messageId, ended: false });
+          if (!updated || updated.ended) return;
+          const channel = await client.channels.fetch(updated.channelId).catch(() => null);
+          if (!channel) return;
+          const message = await channel.messages.fetch(updated.messageId).catch(() => null);
+          if (!message) return;
+          await endGiveaway(updated, message);
+        }, remaining);
+      }
+    }
   },
 };
+
+async function endGiveaway(giveaway, message) {
+  giveaway.ended = true;
+
+  if (giveaway.participants.length === 0) {
+    giveaway.winners = [];
+    await giveaway.save();
+
+    const embed = new EmbedBuilder()
+      .setTitle('🎉 GIVEAWAY KẾT THÚC 🎉')
+      .setDescription(`**Phần thưởng:** ${giveaway.prize}\n\nKhông có ai tham gia!`)
+      .setColor(0xed4245)
+      .setTimestamp();
+
+    await message.edit({ embeds: [embed] });
+    return;
+  }
+
+  const shuffled = [...giveaway.participants].sort(() => 0.5 - Math.random());
+  const selectedWinners = shuffled.slice(0, giveaway.winnersCount);
+  giveaway.winners = selectedWinners;
+  await giveaway.save();
+
+  const winnerMentions = selectedWinners.map(id => `<@${id}>`).join(', ');
+  const embed = new EmbedBuilder()
+    .setTitle('🎉 GIVEAWAY KẾT THÚC 🎉')
+    .setDescription(`**Phần thưởng:** ${giveaway.prize}\n\n**Người thắng:** ${winnerMentions}`)
+    .setColor(0x57f287)
+    .setTimestamp();
+
+  await message.edit({ embeds: [embed] });
+  await message.reply(`Chúc mừng ${winnerMentions}! Bạn đã thắng **${giveaway.prize}**! 🎉`);
+}
