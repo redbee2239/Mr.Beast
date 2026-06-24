@@ -11,15 +11,28 @@ module.exports = {
     const commands = [giveawayCommand.data.toJSON()];
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-    try {
-      console.log('Đang đăng ký slash commands...');
-      await rest.put(
-        Routes.applicationCommands(client.user.id),
-        { body: commands }
-      );
-      console.log('Đã đăng ký slash commands thành công!');
-    } catch (error) {
-      console.error('Lỗi đăng ký slash commands:', error);
+    if (process.env.GUILD_ID) {
+      try {
+        console.log('Đang đăng ký guild commands...');
+        await rest.put(
+          Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
+          { body: commands }
+        );
+        console.log('Đã đăng ký guild commands thành công!');
+      } catch (error) {
+        console.error('Lỗi đăng ký guild commands:', error);
+      }
+    } else {
+      try {
+        console.log('Đang đăng ký global commands...');
+        await rest.put(
+          Routes.applicationCommands(client.user.id),
+          { body: commands }
+        );
+        console.log('Đã đăng ký global commands thành công!');
+      } catch (error) {
+        console.error('Lỗi đăng ký global commands:', error);
+      }
     }
 
     // Load active giveaways and set timers
