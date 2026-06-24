@@ -26,11 +26,14 @@ module.exports = {
         .addStringOption(opt => opt.setName('message_id').setDescription('ID tin nhắn giveaway').setRequired(true))
     )
     .addSubcommand(sub =>
-      sub.setName('list').setDescription('Xem các giveaway đang hoạt động')
+      sub.setName('list').setDescription('Xem các giveaway')
     )
     .addSubcommand(sub =>
-      sub.setName('delete').setDescription('Xoá giveaway')
-        .addStringOption(opt => opt.setName('message_id').setDescription('ID tin nhắn giveaway').setRequired(true))
+      sub.setName('delete').setDescription('Xoá giveaway theo số thứ tự')
+        .addIntegerOption(opt => opt.setName('stt').setDescription('Số thứ tự từ lệnh /giveaway list').setRequired(true))
+    )
+    .addSubcommand(sub =>
+      sub.setName('clear').setDescription('Xoá tất cả giveaway đã kết thúc')
     ),
 
   async execute(interaction) {
@@ -126,21 +129,21 @@ module.exports = {
       await interaction.reply({ content: 'Đã tiếp tục giveaway!', ephemeral: true });
 
     } else if (sub === 'list') {
-      const giveaways = await Giveaway.find({ ended: false });
+      const giveaways = await Giveaway.find();
       if (giveaways.length === 0) {
-        return interaction.reply({ content: 'Không có giveaway nào đang hoạt động!', ephemeral: true });
+        return interaction.reply({ content: 'Không có giveaway nào!', ephemeral: true });
       }
 
       const list = giveaways.map((g, i) => {
-        const status = g.paused ? '⏸️ Tạm dừng' : '✅ Đang chạy';
-        const timeLeft = Math.max(0, Math.floor((g.endTime.getTime() - Date.now()) / 1000));
+        const status = g.ended ? '❌ Đã kết thúc' : g.paused ? '⏸️ Tạm dừng' : '✅ Đang chạy';
+        const timeLeft = g.ended ? 0 : Math.max(0, Math.floor((g.endTime.getTime() - Date.now()) / 1000));
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
-        return `${i + 1}. **${g.prize}** - ${status} - Còn ${minutes}m ${seconds}s - Participants: ${g.participants.length}`;
+        return `${i + 1}. **${g.prize}** - ${status} - ${g.ended ? '' : `Còn ${minutes}m ${seconds}s - `}Participants: ${g.participants.length}`;
       }).join('\n');
 
       const embed = new EmbedBuilder()
-        .setTitle('📋 GIVEAWAY ĐANG HOẠT ĐỘNG')
+        .setTitle('📋 DANH SÁCH GIVEAWAY')
         .setDescription(list)
         .setColor(0x5865f2)
         .setTimestamp();
@@ -148,15 +151,22 @@ module.exports = {
       await interaction.reply({ embeds: [embed], ephemeral: true });
 
     } else if (sub === 'delete') {
-      const messageId = interaction.options.getString('message_id');
-      const giveaway = await Giveaway.findOne({ messageId });
-      if (!giveaway) return interaction.reply({ content: 'Không tìm thấy giveaway!', ephemeral: true });
+      const stt = interaction.options.getInteger('stt');
+      const giveaways = await Giveaway.find();
+      if (stt < 1 || stt > giveaways.length) {
+        return interaction.reply({ content: `Số thứ tự không hợp lệ! Chỉ có ${giveaways.length} giveaway.`, ephemeral: true });
+      }
 
-      const message = await interaction.channel.messages.fetch(messageId).catch(() => null);
+      const giveaway = giveaways[stt - 1];
+      const message = await interaction.channel.messages.fetch(giveaway.messageId).catch(() => null);
       if (message) await message.delete().catch(() => null);
 
-      await Giveaway.deleteOne({ messageId });
-      await interaction.reply({ content: 'Đã xoá giveaway!', ephemeral: true });
+      await Giveaway.deleteOne({ _id: giveaway._id });
+      await interaction.reply({ content: `Đã xoá giveaway **${giveaway.prize}**!`, ephemeral: true });
+
+    } else if (sub === 'clear') {
+      const result = await Giveaway.deleteMany({ ended: true });
+      await interaction.reply({ content: `Đã xoá ${result.deletedCount} giveaway đã kết thúc!`, ephemeral: true });
     }
   },
 };
