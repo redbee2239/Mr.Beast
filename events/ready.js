@@ -1,57 +1,37 @@
-const { Events, REST, Routes, EmbedBuilder } = require('discord.js');
+const { REST, Routes, EmbedBuilder } = require('discord.js');
 const giveawayCommand = require('../commands/giveaway');
 const Giveaway = require('../models/Giveaway');
 
 module.exports = {
-  name: Events.ClientReady,
+  name: 'ready',
   once: true,
   async execute(client) {
-    console.log(`Bot đã đăng nhập với tên: ${client.user.tag}`);
+    console.log('Bot dang dang nhap voi ten: ' + client.user.tag);
 
     const commands = [giveawayCommand.data.toJSON()];
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
-      // Xóa global commands
-      console.log('Đang xóa global commands...');
-      const existingGlobal = await rest.get(Routes.applicationCommands(client.user.id));
-      for (const cmd of existingGlobal) {
-        await rest.delete(Routes.applicationCommand(client.user.id, cmd.id));
-      }
-      console.log(`Đã xóa ${existingGlobal.length} global commands.`);
+      const existing = await rest.get(Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID));
+      const hasGiveaway = existing.some(cmd => cmd.name === 'giveaway');
 
-      // Xóa guild commands nếu có GUILD_ID
-      if (process.env.GUILD_ID) {
-        console.log('Đang xóa guild commands...');
-        const existingGuild = await rest.get(Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID));
-        for (const cmd of existingGuild) {
-          await rest.delete(Routes.applicationGuildCommand(client.user.id, process.env.GUILD_ID, cmd.id));
-        }
-        console.log(`Đã xóa ${existingGuild.length} guild commands.`);
-
-        // Đăng ký guild commands (cập nhật ngay)
-        console.log('Đang đăng ký guild commands...');
+      if (!hasGiveaway) {
+        console.log('Dang dang ky guild commands...');
         await rest.put(
           Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
           { body: commands }
         );
-        console.log('Đã đăng ký guild commands thành công!');
+        console.log('Da dang ky guild commands thanh cong!');
       } else {
-        // Đăng ký global commands
-        console.log('Đang đăng ký global commands...');
-        await rest.put(
-          Routes.applicationCommands(client.user.id),
-          { body: commands }
-        );
-        console.log('Đã đăng ký global commands thành công!');
+        console.log('Commands da ton tai, bo qua.');
       }
     } catch (error) {
-      console.error('Lỗi đăng ký commands:', error);
+      console.error('Loi dang ky commands:', error);
     }
 
     // Load active giveaways and set timers
     const activeGiveaways = await Giveaway.find({ ended: false });
-    console.log(`Đang tải ${activeGiveaways.length} giveaway đang hoạt động...`);
+    console.log('Dang tai ' + activeGiveaways.length + ' giveaway dang hoat dong...');
 
     for (const giveaway of activeGiveaways) {
       const remaining = giveaway.endTime.getTime() - Date.now();
@@ -85,8 +65,8 @@ async function endGiveaway(giveaway, message) {
     await giveaway.save();
 
     const embed = new EmbedBuilder()
-      .setTitle('🎉 GIVEAWAY KẾT THÚC 🎉')
-      .setDescription(`**Phần thưởng:** ${giveaway.prize}\n\nKhông có ai tham gia!`)
+      .setTitle('GIVEAWAY KET THUC')
+      .setDescription('**Phan thuong:** ' + giveaway.prize + '\n\nKhong co ai tham gia!')
       .setColor(0xed4245)
       .setTimestamp();
 
@@ -99,13 +79,13 @@ async function endGiveaway(giveaway, message) {
   giveaway.winners = selectedWinners;
   await giveaway.save();
 
-  const winnerMentions = selectedWinners.map(id => `<@${id}>`).join(', ');
+  const winnerMentions = selectedWinners.map(id => '<@' + id + '>').join(', ');
   const embed = new EmbedBuilder()
-    .setTitle('🎉 GIVEAWAY KẾT THÚC 🎉')
-    .setDescription(`**Phần thưởng:** ${giveaway.prize}\n\n**Người thắng:** ${winnerMentions}`)
+    .setTitle('GIVEAWAY KET THUC')
+    .setDescription('**Phan thuong:** ' + giveaway.prize + '\n\n**Nguoi thang:** ' + winnerMentions)
     .setColor(0x57f287)
     .setTimestamp();
 
   await message.edit({ embeds: [embed] });
-  await message.reply(`Chúc mừng ${winnerMentions}! Bạn đã thắng **${giveaway.prize}**! 🎉`);
+  await message.reply('Chuc mung ' + winnerMentions + '! Ban da thang **' + giveaway.prize + '**!');
 }
