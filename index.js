@@ -1,6 +1,9 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const http = require('http');
 const https = require('https');
+const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
@@ -15,6 +18,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions,
   ],
 });
 
@@ -22,9 +26,21 @@ const CHANNEL_ID = process.env.CHANNEL_ID;
 const ALLOWED_ROLE_ID = process.env.ALLOWED_ROLE_ID;
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
 
-client.once('clientReady', () => {
-  console.log(`Bot đã đăng nhập với tên: ${client.user.tag}`);
+// Load event handlers
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
+for (const file of eventFiles) {
+  const event = require(path.join(eventsPath, file));
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
+  }
+}
+
+// Keep-alive self-ping
+client.once('ready', () => {
   const SELF_URL = process.env.RENDER_EXTERNAL_URL;
   if (SELF_URL) {
     setInterval(() => {
@@ -35,6 +51,7 @@ client.once('clientReady', () => {
   }
 });
 
+// Message trap
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -86,4 +103,13 @@ client.on('messageCreate', async (message) => {
 client.on('error', (err) => console.log(`Client error: ${err.message}`));
 client.on('shardError', (err) => console.log(`Shard error: ${err.message}`));
 
-client.login(process.env.DISCORD_TOKEN);
+// Connect to MongoDB and login
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Đã kết nối MongoDB thành công!');
+    client.login(process.env.DISCORD_TOKEN);
+  })
+  .catch(err => {
+    console.error('Lỗi kết nối MongoDB:', err);
+    process.exit(1);
+  });
