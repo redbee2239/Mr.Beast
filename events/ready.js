@@ -11,28 +11,22 @@ module.exports = {
     const commands = [giveawayCommand.data.toJSON()];
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-    if (process.env.GUILD_ID) {
-      try {
-        console.log('Đang đăng ký guild commands...');
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
-          { body: commands }
-        );
-        console.log('Đã đăng ký guild commands thành công!');
-      } catch (error) {
-        console.error('Lỗi đăng ký guild commands:', error);
+    try {
+      console.log('Đang xóa command cũ...');
+      const existing = await rest.get(Routes.applicationCommands(client.user.id));
+      for (const cmd of existing) {
+        await rest.delete(Routes.applicationCommand(client.user.id, cmd.id));
+        console.log(`Đã xóa: ${cmd.name}`);
       }
-    } else {
-      try {
-        console.log('Đang đăng ký global commands...');
-        await rest.put(
-          Routes.applicationCommands(client.user.id),
-          { body: commands }
-        );
-        console.log('Đã đăng ký global commands thành công!');
-      } catch (error) {
-        console.error('Lỗi đăng ký global commands:', error);
-      }
+
+      console.log('Đang đăng ký commands mới...');
+      await rest.put(
+        Routes.applicationCommands(client.user.id),
+        { body: commands }
+      );
+      console.log('Đã đăng ký commands thành công!');
+    } catch (error) {
+      console.error('Lỗi đăng ký commands:', error);
     }
 
     // Load active giveaways and set timers
@@ -43,14 +37,12 @@ module.exports = {
       const remaining = giveaway.endTime.getTime() - Date.now();
 
       if (remaining <= 0) {
-        // Giveaway should have ended
         const channel = await client.channels.fetch(giveaway.channelId).catch(() => null);
         if (!channel) continue;
         const message = await channel.messages.fetch(giveaway.messageId).catch(() => null);
         if (!message) continue;
         await endGiveaway(giveaway, message);
       } else if (!giveaway.paused) {
-        // Set timer for future end
         setTimeout(async () => {
           const updated = await Giveaway.findOne({ messageId: giveaway.messageId, ended: false });
           if (!updated || updated.ended) return;
