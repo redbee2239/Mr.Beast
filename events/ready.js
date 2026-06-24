@@ -12,19 +12,19 @@ module.exports = {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
-      console.log('Đang xóa command cũ...');
       const existing = await rest.get(Routes.applicationCommands(client.user.id));
-      for (const cmd of existing) {
-        await rest.delete(Routes.applicationCommand(client.user.id, cmd.id));
-        console.log(`Đã xóa: ${cmd.name}`);
-      }
+      const hasGiveaway = existing.some(cmd => cmd.name === 'giveaway');
 
-      console.log('Đang đăng ký commands mới...');
-      await rest.put(
-        Routes.applicationCommands(client.user.id),
-        { body: commands }
-      );
-      console.log('Đã đăng ký commands thành công!');
+      if (!hasGiveaway) {
+        console.log('Đang đăng ký commands...');
+        await rest.put(
+          Routes.applicationCommands(client.user.id),
+          { body: commands }
+        );
+        console.log('Đã đăng ký commands thành công!');
+      } else {
+        console.log('Commands đã tồn tại, bỏ qua.');
+      }
     } catch (error) {
       console.error('Lỗi đăng ký commands:', error);
     }
