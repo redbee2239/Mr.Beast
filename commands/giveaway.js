@@ -189,7 +189,7 @@ async function endGiveaway(giveaway, message) {
     return;
   }
 
-  const shuffled = [...giveaway.participants].sort(() => 0.5 - Math.random());
+  const shuffled = shuffleArray([...giveaway.participants]);
   const selectedWinners = shuffled.slice(0, giveaway.winnersCount);
   giveaway.winners = selectedWinners;
   await giveaway.save();
@@ -203,4 +203,12 @@ async function endGiveaway(giveaway, message) {
 
   await message.edit({ embeds: [embed] });
   await message.reply(`Chúc mừng ${winnerMentions}! Bạn đã thắng **${giveaway.prize}**! 🎉`);
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
